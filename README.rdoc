@@ -2,6 +2,22 @@
 
 Ancestry is a gem/plugin that allows the records of a Ruby on Rails ActiveRecord model to be organised as a tree structure (or hierarchy). It uses a single, intuitively formatted database column, using a variation on the materialised path pattern. It exposes all the standard tree structure relations (ancestors, parent, root, children, siblings, descendants) and all of them can be fetched in a single SQL query. Additional features are STI support, scopes, depth caching, depth constraints, easy migration from older plugins/gems, integrity checking, integrity restoration, arrangement of (sub)tree into hashes and different strategies for dealing with orphaned records.
 
+= About this fork
+
+Was created, because original Ancestry is somehow sleeping.
+
+This fork is aimed to make it Rails 4 compatible.
+Deprecated messages was removed.
+Also there may be some Rails 2 (find_all and similar)
+present, will be removed later (no deprecated messages for them).
+
+Second fix is, that it is possible to use `path` or `ancestors`
+in model callbacks. It is a little hack with .except(:where).
+Because of this, there are currently some minor problems with sorting.
+
+So it is now possible to use `create` method instead of `new.save`.
+
+
 = Installation
 
 To apply Ancestry to any ActiveRecord model, follow these simple steps:

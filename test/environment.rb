@@ -18,7 +18,7 @@ require 'debugger' if RUBY_VERSION =~ /\A1.9/
 
 class AncestryTestDatabase
   def self.setup
-    ActiveRecord::Base.logger = ActiveSupport::BufferedLogger.new('log/test.log')
+    #ActiveRecord::Base.logger = ActiveSupport::BufferedLogger.new('log/test.log')
     ActiveRecord::Base.establish_connection YAML.load(File.open(File.join(File.dirname(__FILE__), 'database.yml')).read)[ENV['db'] || 'sqlite3']
   end
 
@@ -44,7 +44,7 @@ class AncestryTestDatabase
       const_set model_name, model
 
       model.table_name = 'test_nodes'
-      model.send :default_scope, default_scope_params if default_scope_params.present?
+      model.send :default_scope, -> { default_scope_params } if default_scope_params.present?
 
       model.has_ancestry options unless options.delete(:skip_ancestry)
 

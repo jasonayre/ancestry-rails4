@@ -7,6 +7,12 @@ module Ancestry
     
     # Scope on relative depth options
     def scope_depth depth_options, depth
+      # return all Relation (Rails 4 only!)
+      # otherwise it will return self and malicious scope is restored (why?)
+      # but breaks sorting somehow
+      # TODO when rails 4 is stable
+      return self.base_class.all if depth_options.empty?
+      
       depth_options.inject(self.base_class) do |scope, option|
         scope_name, relative_depth = option
         if [:before_depth, :to_depth, :at_depth, :from_depth, :after_depth].include? scope_name
@@ -15,6 +21,7 @@ module Ancestry
           raise Ancestry::AncestryException.new("Unknown depth option: #{scope_name}.")
         end
       end
+      
     end
 
     # Orphan strategy writer
@@ -36,7 +43,7 @@ module Ancestry
           self.base_class.ordered_by_ancestry_and options.delete(:order)
         end
       # Get all nodes ordered by ancestry and start sorting them into an empty hash
-      arrange_nodes scope.all(options)
+      arrange_nodes scope.to_a
     end
     
     # Arrange array of nodes into a nested hash of the form 
@@ -150,7 +157,7 @@ module Ancestry
     # Build ancestry from parent id's for migration purposes
     def build_ancestry_from_parent_ids! parent_id = nil, ancestry = nil
       self.base_class.unscoped do 
-        self.base_class.find_each(:conditions => {:parent_id => parent_id}) do |node|
+        self.base_class.where(:parent_id => parent_id).find_each do |node|
           node.without_ancestry_callbacks do
             node.update_attribute ancestry_column, ancestry
           end

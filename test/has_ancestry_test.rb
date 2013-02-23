@@ -122,7 +122,7 @@ class HasAncestryTreeTest < ActiveSupport::TestCase
         assert lvl0_node.has_siblings?
         assert !lvl0_node.is_only_child?
         # Descendants assertions
-        descendants = model.all.find_all do |node|
+        descendants = model.all.select do |node|
           node.ancestor_ids.include? lvl0_node.id
         end
         assert_equal descendants.map(&:id), lvl0_node.descendant_ids
@@ -201,24 +201,24 @@ class HasAncestryTreeTest < ActiveSupport::TestCase
   def test_scopes
     AncestryTestDatabase.with_model :depth => 3, :width => 3 do |model, roots|
       # Roots assertion
-      assert_equal roots.map(&:first), model.roots.all
+      assert_equal roots.map(&:first), model.roots.to_a
 
       model.all.each do |test_node|
         # Assertions for ancestors_of named scope
-        assert_equal test_node.ancestors.all, model.ancestors_of(test_node).all
-        assert_equal test_node.ancestors.all, model.ancestors_of(test_node.id).all
+        assert_equal test_node.ancestors.to_a, model.ancestors_of(test_node).to_a
+        assert_equal test_node.ancestors.to_a, model.ancestors_of(test_node.id).to_a
         # Assertions for children_of named scope
-        assert_equal test_node.children.all, model.children_of(test_node).all
-        assert_equal test_node.children.all, model.children_of(test_node.id).all
+        assert_equal test_node.children.to_a, model.children_of(test_node).to_a
+        assert_equal test_node.children.to_a, model.children_of(test_node.id).to_a
         # Assertions for descendants_of named scope
-        assert_equal test_node.descendants.all, model.descendants_of(test_node).all
-        assert_equal test_node.descendants.all, model.descendants_of(test_node.id).all
+        assert_equal test_node.descendants.to_a, model.descendants_of(test_node).to_a
+        assert_equal test_node.descendants.to_a, model.descendants_of(test_node.id).to_a
         # Assertions for subtree_of named scope
-        assert_equal test_node.subtree.all, model.subtree_of(test_node).all
-        assert_equal test_node.subtree.all, model.subtree_of(test_node.id).all
+        assert_equal test_node.subtree.to_a, model.subtree_of(test_node).to_a
+        assert_equal test_node.subtree.to_a, model.subtree_of(test_node.id).to_a
         # Assertions for siblings_of named scope
-        assert_equal test_node.siblings.all, model.siblings_of(test_node).all
-        assert_equal test_node.siblings.all, model.siblings_of(test_node.id).all
+        assert_equal test_node.siblings.to_a, model.siblings_of(test_node).to_a
+        assert_equal test_node.siblings.to_a, model.siblings_of(test_node.id).to_a
       end
     end
   end
@@ -267,7 +267,7 @@ class HasAncestryTreeTest < ActiveSupport::TestCase
     AncestryTestDatabase.with_model :depth => 3, :width => 3 do |model, roots|
       model.orphan_strategy = :rootify
       root = roots.first.first
-      children = root.children.all
+      children = root.children.load
       root.destroy
       children.each do |child|
         child.reload
@@ -530,7 +530,7 @@ class HasAncestryTreeTest < ActiveSupport::TestCase
         model.check_ancestry_integrity!
       end
 
-      roots = model.roots.all
+      roots = model.roots.to_a
       # Assert single root node
       assert_equal 1, roots.size
 
@@ -706,10 +706,10 @@ class HasAncestryTreeTest < ActiveSupport::TestCase
   def test_node_excluded_by_default_scope_should_still_move_with_parent
     AncestryTestDatabase.with_model(
       :width => 3, :depth => 3, :extra_columns => {:deleted_at => :datetime}, 
-      :default_scope_params => {:conditions => {:deleted_at => nil}}
+      :default_scope_params => ->{ where(deleted_at: nil) }
     ) do |model, roots|
-      grandparent = model.roots.all[0]
-      new_grandparent = model.roots.all[1]
+      grandparent = model.roots.to_a[0]
+      new_grandparent = model.roots.to_a[1]
       parent = grandparent.children.first
       child = parent.children.first
       
@@ -724,7 +724,7 @@ class HasAncestryTreeTest < ActiveSupport::TestCase
   def test_node_excluded_by_default_scope_should_be_destroyed_with_parent
     AncestryTestDatabase.with_model(
       :width => 1, :depth => 2, :extra_columns => {:deleted_at => :datetime}, 
-      :default_scope_params => {:conditions => {:deleted_at => nil}},
+      :default_scope_params => ->{ where(deleted_at: nil) },
       :orphan_strategy => :destroy
     ) do |model, roots|
       parent = model.roots.first
@@ -741,7 +741,7 @@ class HasAncestryTreeTest < ActiveSupport::TestCase
   def test_node_excluded_by_default_scope_should_be_rootified
     AncestryTestDatabase.with_model(
       :width => 1, :depth => 2, :extra_columns => {:deleted_at => :datetime}, 
-      :default_scope_params => {:conditions => {:deleted_at => nil}},
+      :default_scope_params => ->{ where(deleted_at: nil) },
       :orphan_strategy => :rootify
     ) do |model, roots|
       parent = model.roots.first
@@ -757,7 +757,7 @@ class HasAncestryTreeTest < ActiveSupport::TestCase
 
   def test_arrangement_nesting
     AncestryTestDatabase.with_model :extra_columns => {:name => :string} do |model|
-      model.send :default_scope, model.order('name')
+      model.send :default_scope, -> {model.order('name')}
 
       model.create!(:name => 'Linux').children.create! :name => 'Debian'
 
