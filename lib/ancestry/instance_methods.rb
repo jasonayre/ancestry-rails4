@@ -217,7 +217,7 @@ module Ancestry
   private
 
     def cast_primary_key(key)
-      if primary_key_type == :string
+      if primary_key_type == :string || primary_key_type == :uuid
         key
       else
         key.to_i
